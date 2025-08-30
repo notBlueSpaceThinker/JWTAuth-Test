@@ -1,23 +1,48 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Annotated
-from app.auth import auth_user, create_token, get_user_from_token
+from fastapi import APIRouter, Response, Request, HTTPException, status
+
+from app.auth import create_access_token, get_payload_from_token
+from app.database import auth_user
 from app.schemas.user import User
-from app.database import get_user
 
 router = APIRouter()
 
-@router.post("/login")
-async def login_user(user: Annotated[User, Depends(auth_user)]) -> dict:
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
-    return {
-        "access_token": create_token({"sub": user.username}),
-        "token_type": "bearer"
-    }
 
-@router.get("/protected_resource")
-async def about_me(username: Annotated[str, Depends(get_user_from_token)]):
-    user = get_user(username)
-    if user:
-        return {"message": "access granted"}
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
+@router.post("/login")
+async def login_user(user: User, response: Response):
+    if auth_user(user.username, user.password):
+        token = create_access_token({"sub": user.username})
+
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            secure=False
+        )
+
+        return {"message": "Logged in seccessfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unathorized user"
+        )
+    
+@router.get("/protected_resourse")
+async def protected_resourse(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No access token in cookies",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    payload = get_payload_from_token(token)
+    username = payload.get("sub")
+    if not username:
+                 raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    
+    return {"message": "Access granted"}

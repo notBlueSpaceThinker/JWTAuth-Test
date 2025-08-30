@@ -13,5 +13,5 @@ def load_token_config(path: str = None) -> TokenConfig:
     return TokenConfig(
         SECRET_KEY=env("SECRET_KEY"),
         ALGORITHM=env("ALGORITHM"),
-        ACCESS_TOKEN_EXPIRE_MINUTES=env("ACCESS_TOKEN_EXPIRE_MINUTES")
+        ACCESS_TOKEN_EXPIRE_MINUTES=env.int("ACCESS_TOKEN_EXPIRE_MINUTES")
     )
