@@ -10,6 +10,7 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 def _set_tokens(response: Response, access_token: str, refresh_token: str) -> None:
+    """Установка токенов в cookie"""
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -59,20 +60,7 @@ async def register_user(request: Request, user: User, response: Response):
     access_token = create_token({"sub": user.username, "type": "access"})
     refresh_token = create_token({"sub": user.username, "type": "refresh"}, token_type='r')
 
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        secure=False
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        samesite="lax",
-        secure=False
-    )
+    _set_tokens(response, access_token, refresh_token)
 
     return {"message": "New user created"}
     

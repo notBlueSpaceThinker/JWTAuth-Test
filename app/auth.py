@@ -33,6 +33,7 @@ def create_token(data: dict, token_type: Literal['a', 'r'] = 'a') -> str:
     return encoded_jwt
 
 def get_payload_from_token(token: str) -> dict:
+    """Взятие payload из токена"""
     try: 
         payload = jwt.decode(
             token, 
