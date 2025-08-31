@@ -8,9 +8,13 @@ from app.config import load_token_config
 
 TOKEN_CONFIG = load_token_config()
 
+
 def create_token(data: dict, token_type: Literal['a', 'r'] = 'a') -> str:
-    """Создание токена из словаря. 
-    token_type: 'a' - access_token; 'r' - refresh_token"""
+    """
+    Создание токена из словаря. 
+    token_type: 'a' - access_token; 
+    'r' - refresh_token
+    """
 
     to_encode = data.copy()
 

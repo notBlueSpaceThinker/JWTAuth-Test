@@ -6,8 +6,10 @@ from app.auth import create_token, get_payload_from_token
 from app.database import auth_user, add_user, get_user
 from app.schemas.user import User
 
+
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
+
 
 def _set_tokens(response: Response, access_token: str, refresh_token: str) -> None:
     """Установка токенов в cookie"""

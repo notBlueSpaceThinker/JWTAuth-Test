@@ -3,6 +3,7 @@ from hmac import compare_digest
 from app.schemas.user import User, UserInDB
 from app.security import hash_password, verify_password
 
+
 fake_db: list[User] = []
 
 
