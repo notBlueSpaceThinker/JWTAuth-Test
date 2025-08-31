@@ -1,13 +1,15 @@
+from hmac import compare_digest
+
 from app.schemas.user import User, UserInDB
 from app.security import hash_password, verify_password
 
-fake_db: list[User] = [UserInDB(username="Oleg", hashed_password=hash_password("123"))]
+fake_db: list[User] = []
 
 
 def get_user(username: str) -> UserInDB | None:
     """Поиск пользователя в базе данных"""
     for user in fake_db:
-        if user.username == username:
+        if compare_digest(user.username, username):
             return user
     return None
 
