@@ -1,3 +1,4 @@
+from typing import Literal
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 import jwt
@@ -7,10 +8,21 @@ from app.config import load_token_config
 
 TOKEN_CONFIG = load_token_config()
 
-def create_access_token(data: dict) -> str:
+def create_token(data: dict, token_type: Literal['a', 'r'] = 'a') -> str:
+    """Создание токена из словаря. 
+    token_type: 'a' - access_token; 'r' - refresh_token"""
+
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + timedelta(minutes=TOKEN_CONFIG.ACCESS_TOKEN_EXPIRE_MINUTES)
+    if token_type == 'a':
+        expire = datetime.utcnow() + timedelta(minutes=TOKEN_CONFIG.ACCESS_TOKEN_EXPIRE_MINUTES)
+    elif token_type == 'r':
+        expire = datetime.utcnow() + timedelta(minutes=TOKEN_CONFIG.REFRESH_TOKEN_EXPIRE_MINUTES)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token_type"
+        )
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(

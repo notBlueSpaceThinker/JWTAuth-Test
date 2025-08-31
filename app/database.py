@@ -21,6 +21,7 @@ def add_user(username: str, password: str) -> UserInDB:
     return new_user
     
 def auth_user(username: str, password: str) -> bool:
+    """Проверка авторизации пользователя"""
     user_in_db = get_user(username)
     if user_in_db and verify_password(password, user_in_db.hashed_password):
         return True
