@@ -1,108 +1,83 @@
-from fastapi import APIRouter, Response, Request, HTTPException, status
+from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
+                     status)
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.auth import create_token, get_payload_from_token
-from app.database import auth_user, add_user, get_user
+from app.database import add_user, auth_user, get_user
+from app.dependencies import get_current_user
 from app.schemas.user import User
-
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
-
-
-def _set_tokens(response: Response, access_token: str, refresh_token: str) -> None:
-    """Установка токенов в cookie"""
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        secure=False
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        samesite="lax",
-        secure=False
-    )
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 @router.post("/login")
 @limiter.limit("5/minute")
-async def login_user(request: Request, user: User, response: Response,):
-    if not get_user(user.username):
+async def login_user(
+    request: Request, form_data: OAuth2PasswordRequestForm = Depends()
+):
+    if not get_user(form_data.username):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    if auth_user(user.username, user.password):
-        access_token = create_token({"sub": user.username, "type": "access"})
-        refresh_token = create_token({"sub": user.username, "type": "refresh"}, token_type='r')
 
-        _set_tokens(response, access_token, refresh_token)
+    if auth_user(form_data.username, form_data.password):
+        access_token = create_token({"sub": form_data.username, "type": "access"})
+        refresh_token = create_token({"sub": form_data.username, "type": "refresh"}, token_type="r")
 
-        return {"message": "Logged in successfully"}
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
     else:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized user"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user"
         )
-    
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit("1/minute")
-async def register_user(request: Request, user: User, response: Response):
-    if get_user(user.username):
+async def register_user(
+    request: Request, form_data: OAuth2PasswordRequestForm = Depends()
+):
+    if get_user(form_data.username):
         raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="User already exists"
-    )
-    add_user(user.username, user.password)
-    access_token = create_token({"sub": user.username, "type": "access"})
-    refresh_token = create_token({"sub": user.username, "type": "refresh"}, token_type='r')
+            status_code=status.HTTP_409_CONFLICT, detail="User already exists"
+        )
 
-    _set_tokens(response, access_token, refresh_token)
+    add_user(form_data.username, form_data.password)
+    access_token = create_token({"sub": form_data.username, "type": "access"})
+    refresh_token = create_token({"sub": form_data.username, "type": "refresh"}, token_type="r")
 
-    return {"message": "New user created"}
-    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+
 @router.get("/protected_resource")
-async def protected_resource(request: Request):
-    token = request.cookies.get("access_token")
-    if not token:
-            raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No access token in cookies",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    payload = get_payload_from_token(token)
-    username = payload.get("sub")
-    if not username:
-            raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-        )
-    
-    return {"message": f"{username}, access granted"}
+async def protected_resource(current_user: User = Depends(get_current_user)):
+    return {"message": f"{current_user.username}, access granted"}
+
 
 @router.post("/refresh")
 @limiter.limit("5/minute")
-async def refresh(request: Request, response: Response):
-    token = request.cookies.get("refresh_token")
-    if not token:
-            raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No refresh token in cookies",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
+async def refresh(request: Request):
+    token = await oauth2_scheme(request)
+
     payload = get_payload_from_token(token)
     username = payload.get("sub")
-    
-    access_token = create_token({"sub": username, "type": "access"})
-    refresh_token = create_token({"sub": username, "type": "refresh"}, token_type='r')
-    
-    _set_tokens(response, access_token, refresh_token)
 
-    return {"message": f"{username}, tokens refreshed"}
+    access_token = create_token({"sub": username, "type": "access"})
+    refresh_token = create_token({"sub": username, "type": "refresh"}, token_type="r")
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }

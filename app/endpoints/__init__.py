@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
-
-from . import login, docs
+from . import docs, login
 
 
 def include_routers(app: FastAPI) -> None:

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal
+
 from environs import Env
 
 
@@ -10,6 +11,7 @@ class TokenConfig:
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_MINUTES: int
 
+
 def load_token_config(path: str = None) -> TokenConfig:
     env = Env()
     env.read_env(path)
@@ -18,14 +20,16 @@ def load_token_config(path: str = None) -> TokenConfig:
         SECRET_KEY=env("SECRET_KEY"),
         ALGORITHM=env("ALGORITHM"),
         ACCESS_TOKEN_EXPIRE_MINUTES=env.int("ACCESS_TOKEN_EXPIRE_MINUTES"),
-        REFRESH_TOKEN_EXPIRE_MINUTES=env.int("REFRESH_TOKEN_EXPIRE_MINUTES")
+        REFRESH_TOKEN_EXPIRE_MINUTES=env.int("REFRESH_TOKEN_EXPIRE_MINUTES"),
     )
+
 
 @dataclass
 class DocsConfig:
     MODE: Literal["DEV", "PROD"]
     DOCS_USER: str
     DOCS_PASSWORD: str
+
 
 def load_docs_config(path: str = None) -> DocsConfig:
     env = Env()
