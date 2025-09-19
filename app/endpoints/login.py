@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.auth import create_token, get_payload_from_token
+from app.auth import get_payload_from_token, create_access_token, create_refresh_token
 from app.database import add_user, auth_user, get_user
 from app.dependencies import get_current_user
 from app.schemas.user import User
@@ -25,8 +25,8 @@ async def login_user(
         )
 
     if auth_user(form_data.username, form_data.password):
-        access_token = create_token({"sub": form_data.username, "type": "access"})
-        refresh_token = create_token({"sub": form_data.username, "type": "refresh"}, token_type="r")
+        access_token = create_access_token({"sub": form_data.username})
+        refresh_token = create_refresh_token({"sub": form_data.username})
 
         return {
             "access_token": access_token,
@@ -50,8 +50,8 @@ async def register_user(
         )
 
     add_user(form_data.username, form_data.password)
-    access_token = create_token({"sub": form_data.username, "type": "access"})
-    refresh_token = create_token({"sub": form_data.username, "type": "refresh"}, token_type="r")
+    access_token = create_access_token({"sub": form_data.username})
+    refresh_token = create_refresh_token({"sub": form_data.username})
 
     return {
         "access_token": access_token,
@@ -73,8 +73,8 @@ async def refresh(request: Request):
     payload = get_payload_from_token(token)
     username = payload.get("sub")
 
-    access_token = create_token({"sub": username, "type": "access"})
-    refresh_token = create_token({"sub": username, "type": "refresh"}, token_type="r")
+    access_token = create_access_token({"sub": username, "type": "access"})
+    refresh_token = create_refresh_token({"sub": username, "type": "refresh"}, token_type="r")
 
     return {
         "access_token": access_token,

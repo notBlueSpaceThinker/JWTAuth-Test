@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Literal
 
 import jwt
 from fastapi import HTTPException, status
@@ -9,37 +8,43 @@ from app.config import load_token_config
 TOKEN_CONFIG = load_token_config()
 
 
-def create_token(data: dict, token_type: Literal["a", "r"] = "a") -> str:
-    """
-    Создание токена из словаря.
-    token_type: 'a' - access_token;
-    'r' - refresh_token
-    """
-
+def create_access_token(data: dict) -> str:
     to_encode = data.copy()
 
-    if token_type == "a":
-        expire = datetime.utcnow() + timedelta(
-            minutes=TOKEN_CONFIG.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-    elif token_type == "r":
-        expire = datetime.utcnow() + timedelta(
-            minutes=TOKEN_CONFIG.REFRESH_TOKEN_EXPIRE_MINUTES
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token_type"
-        )
-    to_encode.update({"exp": expire})
+    expire = datetime.utcnow() + \
+        timedelta(minutes=TOKEN_CONFIG.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    encoded_jwt = jwt.encode(
-        to_encode, TOKEN_CONFIG.SECRET_KEY, algorithm=TOKEN_CONFIG.ALGORITHM
+    to_encode.update({
+        "exp": expire,
+        "type": "access"
+    })
+
+    return jwt.encode(
+        payload=to_encode,
+        key=TOKEN_CONFIG.SECRET_KEY,
+        algorithm=TOKEN_CONFIG.ALGORITHM
     )
-    return encoded_jwt
+
+
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+
+    expire = datetime.utcnow() + \
+        timedelta(minutes=TOKEN_CONFIG.REFRESH_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({
+        "exp": expire,
+        "type": "refresh"
+    })
+
+    return jwt.encode(
+        payload=to_encode,
+        key=TOKEN_CONFIG.SECRET_KEY,
+        algorithm=TOKEN_CONFIG.ALGORITHM
+    )
 
 
 def get_payload_from_token(token: str) -> dict:
-    """Взятие payload из токена"""
     try:
         payload = jwt.decode(
             token, TOKEN_CONFIG.SECRET_KEY, algorithms=[TOKEN_CONFIG.ALGORITHM]
