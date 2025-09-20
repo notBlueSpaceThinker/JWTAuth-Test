@@ -62,3 +62,34 @@ def get_payload_from_token(token: str) -> dict:
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def validate_token_type(token: str, token_type: str) -> str | None:
+    try:
+        payload = jwt.decode(
+            token, TOKEN_CONFIG.SECRET_KEY, algorithms=[TOKEN_CONFIG.ALGORITHM]
+        )
+
+        if payload["type"] == token_type:
+            return token
+        else:
+            return None
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token validation error: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

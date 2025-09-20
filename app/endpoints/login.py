@@ -68,13 +68,21 @@ async def protected_resource(current_user: User = Depends(get_current_user)):
 @router.post("/refresh")
 @limiter.limit("5/minute")
 async def refresh(request: Request):
+
     token = await oauth2_scheme(request)
 
     payload = get_payload_from_token(token)
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+
     username = payload.get("sub")
 
     access_token = create_access_token({"sub": username, "type": "access"})
-    refresh_token = create_refresh_token({"sub": username, "type": "refresh"}, token_type="r")
+    refresh_token = create_refresh_token({"sub": username, "type": "refresh"})
 
     return {
         "access_token": access_token,
