@@ -91,5 +91,4 @@ def validate_token_type(token: str, token_type: str) -> str | None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Token validation error: {str(e)}",
-            headers={"WWW-Authenticate": "Bearer"},
         )

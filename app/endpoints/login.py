@@ -4,7 +4,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.auth import get_payload_from_token, create_access_token, create_refresh_token
+from app.auth import (get_payload_from_token, create_access_token, create_refresh_token,
+                      validate_token_type)
 from app.database import add_user, auth_user, get_user
 from app.dependencies import get_current_user
 from app.schemas.user import User
@@ -71,13 +72,13 @@ async def refresh(request: Request):
 
     token = await oauth2_scheme(request)
 
-    payload = get_payload_from_token(token)
-
-    if payload.get("type") != "refresh":
+    if not validate_token_type(token, refresh):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
+
+    payload = get_payload_from_token(token)
 
     username = payload.get("sub")
 
