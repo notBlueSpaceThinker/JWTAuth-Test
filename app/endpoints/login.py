@@ -9,6 +9,7 @@ from app.auth import (get_payload_from_token, create_access_token, create_refres
 from app.database import add_user, auth_user, get_user
 from app.dependencies import get_current_user
 from app.schemas.user import User
+from app.rbac import PermissionChecker
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -62,6 +63,7 @@ async def register_user(
 
 
 @router.get("/protected_resource")
+@PermissionChecker(["admin"])
 async def protected_resource(current_user: User = Depends(get_current_user)):
     return {"message": f"{current_user.username}, access granted"}
 
